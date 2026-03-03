@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Informe Ejecutivo – Mesa de Ayuda</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+    font-family:'Segoe UI', sans-serif;
+    background:#eef2f7;
+    margin:0;
+    padding:40px;
+    color:#2c3e50;
+}
+.container{
+    max-width:1200px;
+    margin:auto;
+    background:white;
+    padding:40px;
+    border-radius:14px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.08);
+}
+h1{text-align:center;color:#1f3c88;}
+h2{color:#1f3c88;margin-top:40px;}
+.kpis{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:15px;
+    margin-top:20px;
+}
+.card{
+    background:#f4f7fc;
+    padding:20px;
+    border-radius:12px;
+    text-align:center;
+}
+.card h3{font-size:13px;margin:0;color:#555;}
+.card p{font-size:22px;font-weight:bold;margin-top:8px;}
+.section{margin-top:30px;}
+canvas{margin-top:20px;}
+.summary{
+    background:#f8f9fc;
+    padding:20px;
+    border-radius:10px;
+}
+footer{text-align:center;margin-top:40px;font-size:12px;color:#777;}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Informe Ejecutivo – Mesa de Ayuda</h1>
+
+<label><strong>Seleccionar Semana:</strong></label><br>
+<select id="weekSelect" onchange="updateReport()">
+<option value="week1">Semana 1 (1–8 Feb)</option>
+<option value="week2">Semana 2 (9–15 Feb)</option>
+<option value="week3">Semana 3 (16–22 Feb)</option>
+<option value="week4">Semana 4 (23–28 Feb)</option>
+<option value="week5">Semana 5 (1–8 Mar)</option>
+</select>
+
+<div class="section">
+<h2>Indicadores Clave</h2>
+<div class="kpis">
+<div class="card"><h3>Total Tickets</h3><p id="total"></p></div>
+<div class="card"><h3>Primera Asignación</h3><p id="assignment"></p></div>
+<div class="card"><h3>Primera Respuesta</h3><p id="response"></p></div>
+<div class="card"><h3>Resolución</h3><p id="resolution"></p></div>
+<div class="card"><h3>Promedio Diario</h3><p id="average"></p></div>
+</div>
+</div>
+
+<div class="section">
+<h2>Análisis Operativo</h2>
+<p id="analysis"></p>
+</div>
+
+<div class="section">
+<h2>Tickets por Día</h2>
+<canvas id="dailyChart"></canvas>
+</div>
+
+<div class="section">
+<h2>Comparativo General entre Semanas</h2>
+<canvas id="weeklyChart"></canvas>
+</div>
+
+<div class="section">
+<h2>Conclusión de la Semana</h2>
+<p id="conclusion"></p>
+</div>
+
+<footer>Informe Ejecutivo Automatizado – Mesa de Ayuda</footer>
+
+</div>
+
+<script>
+
+const data={
+
+week1:{
+total:21264,assignment:4,response:6,resolution:23,average:2658,
+tickets:[450,4800,4400,3900,3500,3100,700,400],
+analysis:"Semana con alta demanda operativa concentrada entre el 2 y el 4 de febrero. La mayor carga horaria se presentó entre las 8:00 y 16:00 horas. A pesar del volumen elevado, se mantuvieron tiempos controlados.",
+conclusion:"La primera semana presentó el inicio más fuerte del periodo con más de 21 mil tickets. La operación logró mantener niveles adecuados de respuesta (6 min) y resolución (23 min), evidenciando buena capacidad de absorción de carga. Se recomienda mantener refuerzos en franjas pico y monitorear eventos que generen incrementos súbitos."
+},
+
+week2:{
+total:17293,assignment:0,response:1,resolution:16,average:2470,
+tickets:[3437,3129,3620,3182,2718,895,312],
+analysis:"Disminución en volumen frente a la semana anterior. Se evidencia mejora sustancial en tiempos operativos con asignación inmediata y reducción significativa en resolución.",
+conclusion:"La operación mostró optimización en tiempos (1 min respuesta, 16 min resolución). La disminución de volumen permitió estabilizar el servicio y fortalecer eficiencia. Se recomienda sostener el modelo operativo implementado."
+},
+
+week3:{
+total:15645,assignment:0,response:1,resolution:16,average:2235,
+tickets:[3252,3115,2825,2735,2595,718,328],
+analysis:"Continuidad en tendencia descendente del volumen. Se mantiene estabilidad en tiempos de gestión y 100% de cierre.",
+conclusion:"Semana de comportamiento estable y controlado. La eficiencia operativa se mantiene constante, evidenciando madurez en la gestión del servicio."
+},
+
+week4:{
+total:21651,assignment:0,response:2,resolution:16,average:3609,
+tickets:[3321,4451,4175,4391,4043,1268],
+analysis:"Repunte significativo en volumen con promedio diario más alto del periodo. La mayor carga se presentó entre el 24 y 26 de febrero.",
+conclusion:"A pesar del incremento fuerte en tickets, los tiempos se mantuvieron estables. La Mesa de Ayuda demostró capacidad de adaptación ante aumentos abruptos de demanda. Se recomienda análisis preventivo para identificar causas del repunte."
+},
+
+week5:{
+total:6694,assignment:5,response:8,resolution:18,average:2231,
+tickets:[663,5228,803],
+analysis:"Semana con menor volumen total pero con concentración marcada el 2 de marzo. Se evidencia incremento en tiempos operativos.",
+conclusion:"El aumento en tiempos de asignación y respuesta (5 y 8 minutos respectivamente) indica impacto por concentración puntual de demanda. Se recomienda fortalecer mecanismos de redistribución automática en días de alta variabilidad."
+}
+
+};
+
+let dailyChart;
+let weeklyChart;
+
+function updateReport(){
+const week=document.getElementById("weekSelect").value;
+const info=data[week];
+
+document.getElementById("total").innerText=info.total.toLocaleString();
+document.getElementById("assignment").innerText=info.assignment+" min";
+document.getElementById("response").innerText=info.response+" min";
+document.getElementById("resolution").innerText=info.resolution+" min";
+document.getElementById("average").innerText=info.average.toLocaleString();
+document.getElementById("analysis").innerText=info.analysis;
+document.getElementById("conclusion").innerText=info.conclusion;
+
+let labels=[];
+for(let i=0;i<info.tickets.length;i++){
+labels.push("Día "+(i+1)+" ("+info.tickets[i]+")");
+}
+
+if(dailyChart) dailyChart.destroy();
+dailyChart=new Chart(document.getElementById("dailyChart"),{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Cantidad de Tickets",
+data:info.tickets
+}]
+}
+});
+}
+
+function loadWeeklyChart(){
+weeklyChart=new Chart(document.getElementById("weeklyChart"),{
+type:"bar",
+data:{
+labels:["Sem1","Sem2","Sem3","Sem4","Sem5"],
+datasets:[{
+label:"Total Tickets",
+data:[
+data.week1.total,
+data.week2.total,
+data.week3.total,
+data.week4.total,
+data.week5.total
+]
+}]
+}
+});
+}
+
+updateReport();
+loadWeeklyChart();
+
+</script>
+
+</body>
+</html>
